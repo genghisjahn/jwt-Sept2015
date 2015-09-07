@@ -1,0 +1,162 @@
+Hello, DramaFever!
+Optional Tech Fun
+8 Sep 2015
+
+Jon Wear
+DramaFever.com
+@genghisjahn
+
+
+* JSON Web Tokens
+
+What is this?
+
+JWT's are an easy way to authenticate API calls.
+
+- JSON Web Tokens work across different programming languages.
+- JWTs are self-contained
+- JWTs can be passed around easily
+
+From:
+
+.link https://scotch.io/tutorials/the-anatomy-of-a-json-web-token The Anatomy of a JSON Web Token
+
+* What are they made out of?
+
+It's just text!
+
+Each token is made up of three parts
+
+aaaa.bbbbbbbbb.ccccc
+
+- aaa is the header
+- bbb is the body or claim
+- ccc is the signature
+
+* header
+
+The header is a base64 encoded bit of JSON.
+
+It's made up of two elements, type & hashing algorithm
+
+{
+"typ": "JWT",
+"alg": "HS256"
+}
+
+* claim
+
+The claim is the guts of the thing.  It's also base64 encoded.
+
+It as lots more parts, these are the ones in the current spec:
+
+- iss: The issuer of the token
+- sub: The subject of the token
+- aud: The audience of the token
+- exp: This will probably be the registered claim most often used. This will define the expiration in NumericDate value. The expiration MUST be after the current date/time.
+- nbf: Defines the time before which the JWT MUST NOT be accepted for processing
+- iat: The time the JWT was issued. Can be used to determine the age of the JWT
+- jti: Unique identifier for the JWT. Can be used to prevent the JWT from being replayed. This is helpful for a one time use token.
+
+* The signature
+
+It looks like a hash.
+
+* Demo?  Here you go!
+
+First, let's make a token.
+
+- start redis and
+- fire up the issuer web server (go run main.go)
+- open the URL http://localhost:8000/jwt/create
+
+I hard coded the userID stuff into the source code,
+but what this does is create a token, and then puts a redis key "dramafever.dev.notify.ios.101" (bytes of secret key).
+
+* Hot off the presses JWT
+
+From my demo program:
+
+Claim Contents
+{
+  "aud": "dramafever.dev.notify.ios.505",
+  "exp": 1473129963,
+  "iat": 1441593963,
+  "iss": "dev.drama9.com/jwt/create",
+  "roles": [
+    "list", "register", "unregister", "sub", "unsub"
+  ],
+  "userid": 505,
+  "sub": "dramafever.dev.notify"
+}
+
+* base64 encoded token
+
+eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.
+eyJhdWQiOiJkcmFtYWZldmVyLmRldi5ub3RpZ
+nkuaW9zLjUwNSIsImV4cCI6MTQ3MzEyOTk2My
+wiaWF0IjoxNDQxNTkzOTYzLCJpc3MiOiJkZXY
+uZHJhbWE5LmNvbS9qd3QvY3JlYXRlIiwicm9s
+ZXMiOlsibGlzdCIsInJlZ2lzdGVyIiwidW5yZ
+Wdpc3RlciIsInN1YiIsInVuc3ViIl0sInN1Yi
+I6ImRyYW1hZmV2ZXIuZGV2Lm5vdGlmeSIsInV
+zZXJpZCI6NTA1fQ.
+RjMJtltCqJBGk3rpY4d7m4t3F5ONY0JpT-wOhDlgv7w
+
+* Let's use some tokens
+
+First off, let's call a service that returns data for user 101.
+
+* What happens
+
+- The service takes the token & decodes it from base64
+- It finds the "dramafever.dev.notify.ios.###" key in redis
+- It rehashes the claim using the algorithm specified in the header using the secret key from redis.
+- If the hashes match, we're good!  We can trust the claims.
+
+* Let's try a user without any data:
+
+It's a valid call, but nothing to return.
+
+* This user doesn't have rights to the /list call
+
+See?  The response says so.
+
+* Some one gets sneaky,
+
+User 303 decides to give themselves access.
+
+They take the claims part of the token,
+decode it and add in what they want:
+
+From this:
+
+"roles": [
+register", "unregister", "sub", "unsub"
+]
+
+To this:
+
+"roles": [
+"list", "register", "unregister", "sub", "unsub"
+]
+
+* You can set a token to have an expiration date
+
+Show token 808
+
+* You can kill the token whenever
+
+In my demo, I could just delete the key in redis and the token would no longer be valid, because the private key won't be located.
+
+I don't have to wait for the token to expire to make it unusable.
+
+* I think we could use this
+
+Especially in API to API communications.  No need to query the user DB once the token is created, just need access to whatever data respository stores the private keys.
+
+* Links
+
+Find 'em all here, plus these slides.
+
+.link http://bit.ly/jwt0915
