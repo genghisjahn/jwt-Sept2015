@@ -48,7 +48,7 @@ It's made up of two elements, type & hashing algorithm
 
 The claim is the guts of the thing.  It's also base64 encoded.
 
-It as lots more parts, these are the ones in the current spec:
+It has lots more parts, these are the ones in the current spec:
 
 - iss: The issuer of the token
 - sub: The subject of the token
